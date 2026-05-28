@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+        <title>Resource Keeper v0.9.8</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0f0f1a; color: #eee; padding: 12px; }
+        .container { max-width: 700px; margin: 0 auto; }
+        .card { background: #1e1e2e; border-radius: 20px; padding: 16px; margin-bottom: 12px; }
+        .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        h1 { font-size: 20px; }
+        .version { color: #555; font-size: 10px; font-family: monospace; }
+        #logoutMainBtn { background: #dc2626; padding: 4px 12px; border-radius: 8px; font-size: 12px; color: white; border: none; cursor: pointer; }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #3a3a4a; padding-bottom: 8px; flex-wrap: wrap; }
+        .tab { padding: 6px 12px; background: none; border: none; color: #888; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; }
+        .tab.active { color: #6c63ff; background: rgba(108,99,255,0.1); }
+        
+        .stats { background: #2a2a3a; padding: 10px; border-radius: 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-around; }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 10px; color: #888; }
+        .stat-value { font-size: 16px; font-weight: bold; }
+        .stat-value.income { color: #6bff6b; }
+        .stat-value.expense { color: #ff6b6b; }
+        
+        .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+        .filter-group { flex: 1; min-width: 90px; }
+        .filter-group select, .filter-group input { width: 100%; padding: 6px 8px; font-size: 12px; background: #2a2a3a; border: 1px solid #3a3a4a; border-radius: 8px; color: #eee; }
+        button.small { padding: 6px 10px; font-size: 12px; margin: 0; }
+        
+        .balances-list, .devices-list, .sims-list { margin: 12px 0; }
+        .balance-row, .device-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #3a3a4a; cursor: pointer; flex-wrap: wrap; gap: 8px; }
+        .balance-name, .device-name { font-size: 14px; font-weight: 500; }
+        .balance-amount, .device-info { font-size: 13px; color: #aaa; }
+        .device-battery { font-size: 13px; font-weight: bold; }
+        .device-battery.high { color: #6bff6b; }
+        .device-battery.medium { color: #ffaa00; }
+        .device-battery.low { color: #ff6b6b; }
+        .total { margin-top: 12px; padding-top: 12px; border-top: 1px solid #3a3a4a; font-size: 13px; }
+        
+        .operation-item { background: #2a2a3a; padding: 10px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .operation-info h3 { font-size: 14px; margin-bottom: 2px; }
+        .operation-info p { font-size: 10px; color: #888; }
+        .operation-amount { font-size: 16px; font-weight: bold; }
+        .operation-amount.income { color: #6bff6b; }
+        .operation-amount.expense { color: #ff6b6b; }
+        .operation-actions button, .device-actions button, .sim-actions button { padding: 4px 8px; font-size: 11px; margin: 0 2px; }
+        
+        .sim-item { background: #2a2a3a; padding: 10px; border-radius: 10px; margin-bottom: 8px; }
+        .sim-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .sim-number { font-weight: bold; font-size: 14px; }
+        .sim-balance { font-size: 14px; color: #6c63ff; font-weight: bold; }
+        .sim-details { font-size: 11px; color: #888; margin-top: 4px; }
+        
+        .history-item { background: #2a2a3a; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .history-date { font-size: 11px; color: #888; }
+        .history-balance { font-weight: bold; color: #6c63ff; }
+        .history-details { font-size: 11px; color: #aaa; margin-top: 2px; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #1e1e2e; border-radius: 20px; padding: 20px; max-width: 90%; width: 400px; max-height: 80vh; overflow-y: auto; }
+        .history-content { width: 500px; }
+        .modal-content h3 { margin-bottom: 16px; font-size: 18px; }
+        
+        .input-group { margin-bottom: 12px; }
+        .input-group label { font-size: 12px; margin-bottom: 4px; display: block; color: #aaa; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 8px 10px; font-size: 13px; background: #2a2a3a; border: 1px solid #3a3a4a; border-radius: 8px; color: #eee; }
+        .input-group textarea { resize: vertical; font-family: inherit; }
+        
+        .inline-buttons { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .inline-buttons button { flex: 1; padding: 10px; margin: 0; }
+        
+        button { cursor: pointer; }
+        button.secondary { background: #3a3a4a; color: white; }
+        button.danger { background: #dc2626; color: white; }
+        
+        .message { padding: 8px; border-radius: 8px; font-size: 12px; margin-top: 12px; }
+        .error { background: rgba(255,68,68,0.2); color: #ff6b6b; }
+        .success { background: rgba(68,255,68,0.2); color: #6bff6b; }
+        .warning { background: rgba(255,170,0,0.2); color: #ffaa00; }
+        .hidden { display: none; }
+        
+        .notification-banner { background: rgba(255,170,0,0.2); border-left: 3px solid #ffaa00; padding: 8px 12px; margin-bottom: 12px; border-radius: 8px; font-size: 12px; }
+        
+        .auth-buttons { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+        .auth-buttons button { flex: 1; min-width: 100px; }
+        .auth-buttons button.danger { background: #5a1a1a; border: 1px solid #dc2626; }
+        .auth-buttons button.danger:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="authScreen" class="card">
+        <h1>🔐 Resource Keeper</h1>
+        <div class="version">v0.9.8</div>
+        <div class="input-group"><label>Логин</label><input type="text" id="login" placeholder="Логин"></div>
+        <div class="input-group"><label>Пароль</label><input type="password" id="password" placeholder="Пароль"></div>
+        <div class="auth-buttons">
+            <button id="loginBtn">Вход</button>
+            <button id="registerBtn" class="secondary">Создать</button>
+            <button id="deleteAllDataBtn" class="danger">🗑️ Del</button>
+        </div>
+        <div id="authMessage" class="message hidden"></div>
+    </div>
+
+    <div id="mainScreen" class="hidden">
+        <div class="card">
+            <div class="header"><div><h1>💰 Resource Keeper</h1><div class="version">v0.9.8</div></div><button id="logoutMainBtn">🚪 Выйти</button></div>
+            <div class="tabs">
+                <button class="tab active" data-tab="balances">💰 Счета</button>
+                <button class="tab" data-tab="operations">📋 Операции</button>
+                <button class="tab" data-tab="devices">📱 Устройства</button>
+                <button class="tab" data-tab="sims">📞 SIM</button>
+            </div>
+            <div id="balancesTab"><button id="addBalanceBtn" class="secondary small" style="margin-bottom:12px;">➕ Добавить счёт</button><div id="balancesList"></div><div id="totalAmount" class="total"></div></div>
+            <div id="operationsTab" class="hidden">
+                <div class="stats" id="stats"></div>
+                <div class="filter-bar">
+                    <div class="filter-group"><input type="date" id="filterDateFrom" placeholder="С даты"></div>
+                    <div class="filter-group"><input type="date" id="filterDateTo" placeholder="По дату"></div>
+                    <div class="filter-group"><select id="filterAccount"><option value="">Все счета</option></select></div>
+                    <div class="filter-group"><input type="text" id="filterCounterparty" placeholder="Контрагент"></div>
+                    <div class="filter-group"><input type="text" id="filterCategory" placeholder="Категория"></div>
+                    <div class="filter-group"><input type="text" id="filterComment" placeholder="Комментарий"></div>
+                    <button id="applyFilterBtn" class="small">🔍</button>
+                    <button id="clearFilterBtn" class="secondary small">✖️</button>
+                    <button id="addOperationBtn" class="secondary small">➕</button>
+                    <button id="exportBtn" class="secondary small">📤</button>
+                    <button id="importBtn" class="secondary small">📥</button>
+                </div>
+                <div id="operationsList"></div>
+                <input type="file" id="importFile" accept=".json" style="display:none;">
+            </div>
+            <div id="devicesTab" class="hidden">
+                <div id="deviceNotifications" class="notification-banner hidden"></div>
+                <button id="addDeviceBtn" class="secondary small" style="margin-bottom:12px;">➕ Добавить устройство</button>
+                <div id="devicesList"></div>
+            </div>
+            <div id="simsTab" class="hidden">
+                <button id="addSimBtn" class="secondary small" style="margin-bottom:12px;">➕ Добавить SIM</button>
+                <div id="simsList"></div>
+            </div>
+        </div>
+        
+        <div id="balanceFormCard" class="card hidden">
+            <h3 id="balanceFormTitle">Редактировать счёт</h3>
+            <div class="input-group"><label>Название</label><input type="text" id="balanceName"></div>
+            <div class="input-group"><label>Сумма</label><input type="number" id="balanceAmount" step="0.01"></div>
+            <div class="input-group"><label>Валюта</label><select id="balanceCurrency"><option value="RUB">RUB</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
+            <div class="inline-buttons"><button id="saveBalanceBtn">💾 Сохранить</button><button id="deleteBalanceBtn" class="danger">🗑️ Удалить</button><button id="cancelBalanceBtn" class="secondary">Отмена</button></div>
+            <div id="balanceFormMessage" class="message hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна (операции, устройства, SIM) -->
+<div id="operationModal" class="modal-overlay hidden"><div class="modal-content"><h3 id="modalTitle">Добавить операцию</h3><div class="input-group"><label>Счёт</label><select id="modalOperationAccount"></select></div><div class="input-group"><label>Тип</label><select id="modalOperationType"><option value="expense">Расход</option><option value="income">Доход</option></select></div><div class="input-group"><label>Сумма</label><input type="number" id="modalOperationAmount" step="0.01"></div><div class="input-group"><label>Валюта</label><select id="modalOperationCurrency"><option value="RUB">RUB</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div><div class="input-group"><label>Контрагент</label><input type="text" id="modalOperationCounterparty"></div><div class="input-group"><label>Категория</label><input type="text" id="modalOperationCategory"></div><div class="input-group"><label>Дата</label><input type="date" id="modalOperationDate"></div><div class="input-group"><label>Комментарий</label><textarea id="modalOperationComment" rows="2"></textarea></div><div class="inline-buttons"><button id="modalSaveBtn">💾 Сохранить</button><button id="modalCancelBtn" class="secondary">Отмена</button></div><div id="modalMessage" class="message hidden"></div></div></div>
+
+<div id="deviceModal" class="modal-overlay hidden"><div class="modal-content"><h3 id="deviceModalTitle">Добавить устройство</h3><div class="input-group"><label>Название</label><input type="text" id="deviceName"></div><div class="input-group"><label>Тип</label><select id="deviceType"><option value="phone">Телефон</option><option value="tablet">Планшет</option><option value="computer">Компьютер</option><option value="laptop">Ноутбук</option><option value="flash">Флешка</option><option value="adapter">Переходник</option><option value="charger">Зарядка</option><option value="device">Device</option></select></div><div class="input-group" id="batteryGroup"><label>Заряд (%)</label><input type="number" id="deviceBattery" min="0" max="100"></div><div class="input-group"><label>Дата следующей зарядки</label><input type="date" id="deviceNextCharge"></div><div class="inline-buttons"><button id="modalDeviceSaveBtn">💾 Сохранить</button><button id="modalDeviceCancelBtn" class="secondary">Отмена</button></div><div id="deviceModalMessage" class="message hidden"></div></div></div>
+
+<div id="simModal" class="modal-overlay hidden"><div class="modal-content"><h3 id="simModalTitle">Добавить SIM</h3><div class="input-group"><label>Номер</label><input type="text" id="simNumber" placeholder="+7..."></div><div class="input-group"><label>Оператор</label><input type="text" id="simOperator"></div><div class="input-group"><label>Устройство (телефон)</label><input type="text" id="simDevice" placeholder="iPhone..."></div><div class="input-group"><label>Текущий баланс (руб)</label><input type="number" id="simBalance" step="0.01"></div><div class="inline-buttons"><button id="saveSimBtn">💾 Сохранить</button><button id="deleteSimBtn" class="danger hidden">🗑️ Удалить</button><button id="cancelSimBtn" class="secondary">Отмена</button></div><div id="simModalMessage" class="message hidden"></div></div></div>
+
+<!-- Модальное окно для состояния SIM (с оператором и устройством) -->
+<div id="stateModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 id="stateModalTitle">Добавить состояние</h3>
+        <div class="input-group"><label>Оператор</label><input type="text" id="stateOperator" placeholder="МТС, Билайн..."></div>
+        <div class="input-group"><label>Устройство (телефон)</label><input type="text" id="stateDevice" placeholder="iPhone 13, Samsung..."></div>
+        <div class="input-group"><label>Баланс (руб)</label><input type="number" id="stateBalance" step="0.01"></div>
+        <div class="input-group"><label>Дата</label><input type="date" id="stateDate"></div>
+        <div class="input-group"><label>Комментарий</label><textarea id="stateComment" rows="2" placeholder="Дополнительные примечания..."></textarea></div>
+        <div class="inline-buttons"><button id="saveStateBtn">💾 Сохранить</button><button id="cancelStateBtn" class="secondary">Отмена</button></div>
+        <div id="stateModalMessage" class="message hidden"></div>
+    </div>
+</div>
+
+<div id="historyModal" class="modal-overlay hidden"><div class="modal-content history-content"><h3 id="historyModalTitle">История состояний</h3><div id="historyList"></div><div class="inline-buttons"><button id="closeHistoryBtn" class="secondary">Закрыть</button></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+<script>
+    function hash(str) { return CryptoJS.SHA256(str).toString(); }
+    let currentUser = null, currentLogin = null;
+    
+    function getUserData(login) { const u = localStorage.getItem('users'); if(!u) return null; const o=JSON.parse(u); return o[login]||null; }
+    function saveUserData(login, lh, ph) { const u=localStorage.getItem('users'); let o=u?JSON.parse(u):{}; o[login]={loginHash:lh, passwordHash:ph}; localStorage.setItem('users',JSON.stringify(o)); }
+    
+    function loadData(key) { if(!currentLogin) return []; try { return JSON.parse(CryptoJS.AES.decrypt(localStorage.getItem(`${key}_${currentLogin}`)||'', currentUser).toString(CryptoJS.enc.Utf8)); } catch(e){ return []; } }
+    function saveData(key, data) { if(currentLogin) localStorage.setItem(`${key}_${currentLogin}`, CryptoJS.AES.encrypt(JSON.stringify(data), currentUser).toString()); }
+    
+    function loadBalances() { return loadData('balances'); }
+    function saveBalances(b) { saveData('balances', b); }
+    function loadOperations() { return loadData('operations'); }
+    function saveOperations(o) { saveData('operations', o); }
+    function loadDevices() { return loadData('devices'); }
+    function saveDevices(d) { saveData('devices', d); }
+    function loadSims() { return loadData('sims'); }
+    function saveSims(s) { saveData('sims', s); }
+    
+    function deleteAllData() { if(confirm('Удалить ВСЕ данные?')) { localStorage.clear(); showAuthMessage('Все данные удалены. Перезагрузите страницу.','success'); setTimeout(()=>location.reload(),1500); } }
+    
+    // ---------- SIM-карты ----------
+    let currentSimId = null, currentStateSimId = null;
+    
+    function renderSims() {
+        const sims = loadSims();
+        const container = document.getElementById('simsList');
+        if (sims.length === 0) { container.innerHTML = '<div style="padding:20px;color:#888;">Нет SIM-карт</div>'; return; }
+        container.innerHTML = '';
+        sims.forEach(sim => {
+            const lastState = sim.states && sim.states.length ? sim.states[0] : null;
+            const currentBalance = lastState ? lastState.balance : sim.balance || 0;
+            const currentOperator = lastState ? lastState.operator : sim.operator || '—';
+            const currentDevice = lastState ? lastState.device : sim.device || '—';
+            const div = document.createElement('div'); div.className = 'sim-item';
+            div.innerHTML = `<div class="sim-header"><span class="sim-number">📞 ${escapeHtml(sim.number)}</span><span class="sim-balance">💰 ${formatNumber(currentBalance)} ₽</span></div><div class="sim-details">${escapeHtml(currentOperator)} • ${escapeHtml(currentDevice)}</div><div class="sim-actions" style="margin-top:8px;"><button class="addStateSim" data-id="${sim.id}">📝 Состояние</button><button class="historySim" data-id="${sim.id}">📜 История</button><button class="editSim" data-id="${sim.id}">✏️</button><button class="deleteSim" data-id="${sim.id}" style="background:#dc2626">🗑️</button></div>`;
+            container.appendChild(div);
+        });
+        container.querySelectorAll('.addStateSim').forEach(btn => btn.onclick = () => openStateModal(btn.dataset.id));
+        container.querySelectorAll('.historySim').forEach(btn => btn.onclick = () => showHistory(btn.dataset.id));
+        container.querySelectorAll('.editSim').forEach(btn => btn.onclick = () => editSim(btn.dataset.id));
+        container.querySelectorAll('.deleteSim').forEach(btn => btn.onclick = () => deleteSim(btn.dataset.id));
+    }
+    
+    function editSim(id) {
+        const sims = loadSims();
+        const sim = sims.find(s => s.id === id);
+        if (!sim) return;
+        currentSimId = id;
+        document.getElementById('simModalTitle').innerText = 'Редактировать SIM';
+        document.getElementById('simNumber').value = sim.number;
+        document.getElementById('simOperator').value = sim.operator || '';
+        document.getElementById('simDevice').value = sim.device || '';
+        document.getElementById('simBalance').value = sim.balance || 0;
+        document.getElementById('deleteSimBtn').classList.remove('hidden');
+        document.getElementById('simModal').classList.remove('hidden');
+    }
+    
+    function deleteSim(id) {
+        if (!confirm('Удалить SIM и всю историю состояний?')) return;
+        let sims = loadSims();
+        sims = sims.filter(s => s.id !== id);
+        saveSims(sims);
+        renderSims();
+        showMessage('SIM удалена', 'success', 'sim');
+    }
+    
+    function saveSimFromModal() {
+        const number = document.getElementById('simNumber').value.trim();
+        const operator = document.getElementById('simOperator').value.trim();
+        const device = document.getElementById('simDevice').value.trim();
+        const balance = parseFloat(document.getElementById('simBalance').value) || 0;
+        if (!number) { showSimModalMessage('Введите номер', 'error'); return; }
+        const sims = loadSims();
+        if (currentSimId) {
+            const index = sims.findIndex(s => s.id === currentSimId);
+            if (index !== -1) {
+                sims[index] = { ...sims[index], number, operator, device, balance, updatedAt: new Date().toISOString() };
+                showMessage('SIM обновлена', 'success', 'sim');
+            }
+        } else {
+            sims.push({ id: Date.now().toString(), number, operator, device, balance, states: [], createdAt: new Date().toISOString() });
+            showMessage('SIM добавлена', 'success', 'sim');
+        }
+        saveSims(sims);
+        renderSims();
+        closeSimModal();
+    }
+    
+    function openStateModal(simId) {
+        currentStateSimId = simId;
+        const sims = loadSims();
+        const sim = sims.find(s => s.id === simId);
+        document.getElementById('stateOperator').value = sim?.operator || '';
+        document.getElementById('stateDevice').value = sim?.device || '';
+        document.getElementById('stateBalance').value = '';
+        document.getElementById('stateDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('stateComment').value = '';
+        document.getElementById('stateModal').classList.remove('hidden');
+    }
+    
+    function saveState() {
+        const operator = document.getElementById('stateOperator').value.trim();
+        const device = document.getElementById('stateDevice').value.trim();
+        const balance = parseFloat(document.getElementById('stateBalance').value) || 0;
+        const date = document.getElementById('stateDate').value;
+        const comment = document.getElementById('stateComment').value.trim();
+        if (!date) { showStateModalMessage('Выберите дату', 'error'); return; }
+        const sims = loadSims();
+        const simIndex = sims.findIndex(s => s.id === currentStateSimId);
+        if (simIndex !== -1) {
+            if (!sims[simIndex].states) sims[simIndex].states = [];
+            sims[simIndex].states.unshift({ operator, device, balance, date, comment, createdAt: new Date().toISOString() });
+            sims[simIndex].operator = operator;
+            sims[simIndex].device = device;
+            sims[simIndex].balance = balance;
+            sims[simIndex].updatedAt = new Date().toISOString();
+            saveSims(sims);
+            renderSims();
+            showMessage('Состояние добавлено', 'success', 'sim');
+        }
+        closeStateModal();
+    }
+    
+    function showHistory(simId) {
+        const sims = loadSims();
+        const sim = sims.find(s => s.id === simId);
+        const historyDiv = document.getElementById('historyList');
+        if (!sim || !sim.states || sim.states.length === 0) {
+            historyDiv.innerHTML = '<div style="padding:20px;color:#888;">Нет записей</div>';
+        } else {
+            let html = '';
+            sim.states.forEach(s => {
+                html += `<div class="history-item"><div><div class="history-date">${s.date}</div><div class="history-details">${escapeHtml(s.operator||'—')} • ${escapeHtml(s.device||'—')}</div><div class="history-details">${escapeHtml(s.comment||'')}</div></div><div class="history-balance">💰 ${formatNumber(s.balance)} ₽</div></div>`;
+            });
+            historyDiv.innerHTML = html;
+        }
+        document.getElementById('historyModalTitle').innerText = `История: ${escapeHtml(sim.number)}`;
+        document.getElementById('historyModal').classList.remove('hidden');
+    }
+    
+    function closeSimModal() { document.getElementById('simModal').classList.add('hidden'); document.getElementById('deleteSimBtn').classList.add('hidden'); currentSimId = null; }
+    function closeStateModal() { document.getElementById('stateModal').classList.add('hidden'); currentStateSimId = null; }
+    function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
+    function showSimModalMessage(t,type){ const m=document.getElementById('simModalMessage'); m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),2000); }
+    function showStateModalMessage(t,type){ const m=document.getElementById('stateModalMessage'); m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),2000); }
+    
+    // ---------- Устройства (как в v0.9.7) ----------
+    function getDeviceTypeIcon(t){ return {phone:'📱',tablet:'📟',computer:'🖥️',laptop:'💻',flash:'💾',adapter:'🔌',charger:'⚡',device:'📟'}[t]||'📟'; }
+    function renderDevices() {
+        const devices = loadDevices();
+        const container = document.getElementById('devicesList');
+        if(!devices.length){ container.innerHTML='<div style="padding:20px;color:#888;">Нет устройств</div>'; return; }
+        container.innerHTML = '';
+        devices.forEach((d,i) => {
+            const div = document.createElement('div'); div.className = 'device-row';
+            let batteryHtml = '';
+            if(d.battery && (d.type==='phone'||d.type==='laptop'||d.type==='tablet')){
+                let cls = d.battery<=20?'low':d.battery<=50?'medium':'high';
+                batteryHtml = `<span class="device-battery ${cls}">🔋 ${d.battery}%</span>`;
+            }
+            div.innerHTML = `<div style="flex:1"><div class="device-name">${getDeviceTypeIcon(d.type)} ${escapeHtml(d.name)}</div><div style="font-size:11px;">${batteryHtml} ${d.nextCharge?`📅 до ${d.nextCharge}`:''}</div></div><div><button class="editDevice" data-i="${i}">✏️</button><button class="deleteDevice" data-i="${i}" style="background:#dc2626">🗑️</button></div>`;
+            container.appendChild(div);
+        });
+        container.querySelectorAll('.editDevice').forEach(btn=>btn.onclick=()=>editDevice(parseInt(btn.dataset.i)));
+        container.querySelectorAll('.deleteDevice').forEach(btn=>btn.onclick=()=>deleteDevice(parseInt(btn.dataset.i)));
+        const today=new Date().toISOString().split('T')[0]; const notes=[]; devices.forEach(d=>{ if(d.nextCharge && d.nextCharge<=today) notes.push(`${d.name} — пора заряжать!`); if(d.battery && d.battery<=20 && (d.type==='phone'||d.type==='laptop'||d.type==='tablet')) notes.push(`${d.name} — низкий заряд (${d.battery}%)`); }); const banner=document.getElementById('deviceNotifications'); if(notes.length){ banner.innerHTML='⚠️ '+notes.join(' • '); banner.classList.remove('hidden'); } else banner.classList.add('hidden');
+    }
+    let currentDeviceIdx=null;
+    function editDevice(i){ const d=loadDevices(); const dev=d[i]; if(!dev) return; currentDeviceIdx=i; document.getElementById('deviceModalTitle').innerText='Редактировать устройство'; document.getElementById('deviceName').value=dev.name; document.getElementById('deviceType').value=dev.type; document.getElementById('deviceBattery').value=dev.battery||''; document.getElementById('deviceNextCharge').value=dev.nextCharge||''; const bg=document.getElementById('batteryGroup'); if(dev.type==='phone'||dev.type==='laptop'||dev.type==='tablet') bg.style.display='block'; else bg.style.display='none'; document.getElementById('deviceModal').classList.remove('hidden'); }
+    function deleteDevice(i){ if(!confirm('Удалить устройство?')) return; const d=loadDevices(); d.splice(i,1); saveDevices(d); renderDevices(); showMessage('Устройство удалено','success','device'); }
+    function saveDeviceFromModal(){ const name=document.getElementById('deviceName').value.trim(); const type=document.getElementById('deviceType').value; let bat=parseInt(document.getElementById('deviceBattery').value); const next=document.getElementById('deviceNextCharge').value; if(!name){ showDeviceMsg('Введите название','error'); return; } if(type==='phone'||type==='laptop'||type==='tablet'){ if(isNaN(bat)) bat=null; else if(bat<0) bat=0; else if(bat>100) bat=100; } else bat=null; const d=loadDevices(); const newDev={name, type, battery:bat, nextCharge:next||null, updatedAt:new Date()}; if(currentDeviceIdx!==null){ d[currentDeviceIdx]=newDev; showMessage('Устройство обновлено','success','device'); } else { d.push({...newDev, createdAt:new Date()}); showMessage('Устройство добавлено','success','device'); } saveDevices(d); renderDevices(); closeDeviceModal(); }
+    function closeDeviceModal(){ document.getElementById('deviceModal').classList.add('hidden'); currentDeviceIdx=null; }
+    function showDeviceMsg(t,type){ const m=document.getElementById('deviceModalMessage'); m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),2000); }
+    document.getElementById('deviceType')?.addEventListener('change',e=>{ const bg=document.getElementById('batteryGroup'); if(e.target.value==='phone'||e.target.value==='laptop'||e.target.value==='tablet') bg.style.display='block'; else bg.style.display='none'; });
+    
+    // ---------- Счета ----------
+    function renderBalances() {
+        const b=loadBalances(); const c=document.getElementById('balancesList'); const t=document.getElementById('totalAmount');
+        if(!b.length){ c.innerHTML='<div style="padding:20px;color:#888;">Нет счетов</div>'; t.innerHTML=''; return; }
+        const totals={}; b.forEach(i=>{ const cur=i.currency||'RUB'; totals[cur]=(totals[cur]||0)+(i.amount||0); });
+        t.innerHTML='<strong>💰 Итого:</strong> '+Object.entries(totals).map(([c,s])=>`${getSymbol(c)} ${formatNumber(s)} ${c}`).join(' ');
+        c.innerHTML=b.map((i,idx)=>`<div class="balance-row" data-idx="${idx}"><div class="balance-name">${escapeHtml(i.name)}</div><div class="balance-amount">${getSymbol(i.currency||'RUB')} ${formatNumber(i.amount)}</div></div>`).join('');
+        document.querySelectorAll('.balance-row').forEach(r=>r.onclick=()=>editBalance(parseInt(r.dataset.idx)));
+    }
+    let currentBalanceIdx=null;
+    function editBalance(i){ const b=loadBalances(); const it=b[i]; if(!it) return; currentBalanceIdx=i; document.getElementById('balanceName').value=it.name; document.getElementById('balanceAmount').value=it.amount; document.getElementById('balanceCurrency').value=it.currency||'RUB'; document.getElementById('balanceFormTitle').innerText='Редактировать счёт'; document.getElementById('balanceFormCard').classList.remove('hidden'); }
+    function deleteCurrentBalance(){ if(!confirm('Удалить счёт и все операции?')) return; const b=loadBalances(); const del=b[currentBalanceIdx].name; b.splice(currentBalanceIdx,1); saveBalances(b); let ops=loadOperations(); ops=ops.filter(op=>op.accountName!==del); saveOperations(ops); hideBalanceForm(); renderBalances(); renderOperations(); updateFilterSelect(); showMessage('Счёт и операции удалены','success','balance'); }
+    function saveBalanceFromForm(){ const name=document.getElementById('balanceName').value.trim(); const amt=parseFloat(document.getElementById('balanceAmount').value)||0; const cur=document.getElementById('balanceCurrency').value; if(!name){ showFormMsg('Введите название','error','balance'); return; } const b=loadBalances(); if(currentBalanceIdx!==null){ const old=b[currentBalanceIdx].name; b[currentBalanceIdx]={...b[currentBalanceIdx], name, amount:amt, currency:cur, updatedAt:new Date()}; let ops=loadOperations(); ops=ops.map(op=>op.accountName===old?{...op,accountName:name}:op); saveOperations(ops); showMessage('Счёт обновлён','success','balance'); } else { b.push({id:Date.now(), name, amount:amt, currency:cur, createdAt:new Date()}); showMessage('Счёт добавлен','success','balance'); } saveBalances(b); renderBalances(); renderOperations(); updateFilterSelect(); updateModalAccountSelect(); hideBalanceForm(); }
+    function hideBalanceForm(){ document.getElementById('balanceFormCard').classList.add('hidden'); currentBalanceIdx=null; }
+    
+    // ---------- Операции ----------
+    let currentFilter = { dateFrom:'', dateTo:'', account:'', counterparty:'', category:'', comment:'' };
+    let currentOpIdx=null;
+    function updateModalAccountSelect(){ const b=loadBalances(); const s=document.getElementById('modalOperationAccount'); s.innerHTML='<option value="">-- Выберите счёт --</option>'; b.forEach(b=>s.innerHTML+=`<option value="${escapeHtml(b.name)}">${escapeHtml(b.name)} (${getSymbol(b.currency)} ${formatNumber(b.amount)})</option>`); }
+    function updateFilterSelect(){ const b=loadBalances(); const s=document.getElementById('filterAccount'); s.innerHTML='<option value="">Все счета</option>'; b.forEach(b=>s.innerHTML+=`<option value="${escapeHtml(b.name)}">${escapeHtml(b.name)}</option>`); if(currentFilter.account) s.value=currentFilter.account; }
+    function renderOperations(){
+        let ops=loadOperations();
+        if(currentFilter.dateFrom) ops=ops.filter(o=>o.date>=currentFilter.dateFrom);
+        if(currentFilter.dateTo) ops=ops.filter(o=>o.date<=currentFilter.dateTo);
+        if(currentFilter.account) ops=ops.filter(o=>o.accountName===currentFilter.account);
+        if(currentFilter.counterparty) ops=ops.filter(o=>o.counterparty&&o.counterparty.toLowerCase().includes(currentFilter.counterparty.toLowerCase()));
+        if(currentFilter.category) ops=ops.filter(o=>o.category&&o.category.toLowerCase().includes(currentFilter.category.toLowerCase()));
+        if(currentFilter.comment) ops=ops.filter(o=>o.comment&&o.comment.toLowerCase().includes(currentFilter.comment.toLowerCase()));
+        ops.sort((a,b)=>b.date.localeCompare(a.date));
+        const c=document.getElementById('operationsList');
+        if(!ops.length){ c.innerHTML='<div style="padding:40px;color:#888;">Нет операций</div>'; renderStats([]); return; }
+        renderStats(ops);
+        c.innerHTML=ops.map((o,i)=>`<div class="operation-item" data-idx="${i}"><div><h3>${escapeHtml(o.category||'Разное')}</h3><p>${o.date} • ${escapeHtml(o.accountName||'?')} • ${escapeHtml(o.counterparty||'—')}</p>${o.comment?`<p style="font-size:9px;">📝 ${escapeHtml(o.comment.substring(0,30))}</p>`:''}</div><div class="operation-amount ${o.type==='income'?'income':'expense'}">${o.type==='income'?'+':'-'} ${getSymbol(o.currency)} ${formatNumber(o.amount)}</div><div><button class="editOp">✏️</button><button class="delOp" style="background:#dc2626">🗑️</button></div></div>`).join('');
+        const all=loadOperations();
+        c.querySelectorAll('.editOp').forEach(btn=>{ btn.onclick=()=>{ const idx=parseInt(btn.closest('.operation-item').dataset.idx); const op=ops[idx]; const orig=all.findIndex(o=>o.createdAt===op.createdAt); openModal(orig); }; });
+        c.querySelectorAll('.delOp').forEach(btn=>{ btn.onclick=()=>{ const idx=parseInt(btn.closest('.operation-item').dataset.idx); const op=ops[idx]; const orig=all.findIndex(o=>o.createdAt===op.createdAt); deleteOperation(orig); }; });
+    }
+    function renderStats(ops){ let inc=0,exp=0; ops.forEach(o=>{ if(o.type==='income') inc+=o.amount; else exp+=o.amount; }); document.getElementById('stats').innerHTML=`<div class="stat-item"><div class="stat-label">📈 Доход</div><div class="stat-value income">+${formatNumber(inc)}</div></div><div class="stat-item"><div class="stat-label">📉 Расход</div><div class="stat-value expense">-${formatNumber(exp)}</div></div><div class="stat-item"><div class="stat-label">💰 Баланс</div><div class="stat-value ${inc-exp>=0?'income':'expense'}">${formatNumber(inc-exp)}</div></div>`; }
+    function openModal(i){ updateModalAccountSelect(); const ops=loadOperations(); if(i!==undefined && i!==-1){ currentOpIdx=i; const o=ops[i]; document.getElementById('modalTitle').innerText='Редактировать операцию'; document.getElementById('modalOperationAccount').value=o.accountName||''; document.getElementById('modalOperationType').value=o.type; document.getElementById('modalOperationAmount').value=o.amount; document.getElementById('modalOperationCurrency').value=o.currency||'RUB'; document.getElementById('modalOperationCounterparty').value=o.counterparty||''; document.getElementById('modalOperationCategory').value=o.category||''; document.getElementById('modalOperationDate').value=o.date; document.getElementById('modalOperationComment').value=o.comment||''; } else { currentOpIdx=undefined; document.getElementById('modalTitle').innerText='Добавить операцию'; document.getElementById('modalOperationAccount').value=''; document.getElementById('modalOperationType').value='expense'; document.getElementById('modalOperationAmount').value=''; document.getElementById('modalOperationCurrency').value='RUB'; document.getElementById('modalOperationCounterparty').value=''; document.getElementById('modalOperationCategory').value=''; document.getElementById('modalOperationDate').value=new Date().toISOString().split('T')[0]; document.getElementById('modalOperationComment').value=''; } document.getElementById('operationModal').classList.remove('hidden'); }
+    function closeModal(){ document.getElementById('operationModal').classList.add('hidden'); currentOpIdx=null; }
+    function saveModalOperation(){ const acc=document.getElementById('modalOperationAccount').value; const type=document.getElementById('modalOperationType').value; const amt=parseFloat(document.getElementById('modalOperationAmount').value)||0; const cur=document.getElementById('modalOperationCurrency').value; const cp=document.getElementById('modalOperationCounterparty').value.trim(); let cat=document.getElementById('modalOperationCategory').value.trim(); const date=document.getElementById('modalOperationDate').value; const comm=document.getElementById('modalOperationComment').value.trim(); if(!acc){ showModalMsg('Выберите счёт','error'); return; } if(!date){ showModalMsg('Выберите дату','error'); return; } if(amt<=0){ showModalMsg('Сумма >0','error'); return; } if(!cat) cat='Разное'; const ops=loadOperations(); const newItem={accountName:acc, type, amount:amt, currency:cur, counterparty:cp, category:cat, date, comment:comm, createdAt:new Date().toISOString()}; if(currentOpIdx!==undefined){ const old=ops[currentOpIdx]; ops[currentOpIdx]=newItem; const bal=loadBalances(); let ai=bal.findIndex(b=>b.name===old.accountName); if(ai!==-1){ if(old.type==='income') bal[ai].amount-=old.amount; else bal[ai].amount+=old.amount; } ai=bal.findIndex(b=>b.name===acc); if(ai!==-1){ if(type==='income') bal[ai].amount+=amt; else bal[ai].amount-=amt; } saveBalances(bal); renderBalances(); } else { ops.push(newItem); const bal=loadBalances(); const ai=bal.findIndex(b=>b.name===acc); if(ai!==-1){ if(type==='income') bal[ai].amount+=amt; else bal[ai].amount-=amt; saveBalances(bal); renderBalances(); } } saveOperations(ops); renderOperations(); closeModal(); showMessage('Сохранено','success','operation'); }
+    function deleteOperation(i){ if(!confirm('Удалить операцию?')) return; const ops=loadOperations(); const del=ops[i]; ops.splice(i,1); saveOperations(ops); if(del){ const bal=loadBalances(); const ai=bal.findIndex(b=>b.name===del.accountName); if(ai!==-1){ if(del.type==='income') bal[ai].amount-=del.amount; else bal[ai].amount+=del.amount; saveBalances(bal); renderBalances(); } } renderOperations(); showMessage('Операция удалена','success','operation'); }
+    function showModalMsg(t,type){ const m=document.getElementById('modalMessage'); m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),2000); }
+    
+    // ---------- Экспорт/Импорт ----------
+    function exportData(){ const all={version:'0.9.8', exportDate:new Date(), users:localStorage.getItem('users'), balances:{}, operations:{}, devices:{}, sims:{}}; const users=JSON.parse(localStorage.getItem('users')||'{}'); for(const l of Object.keys(users)){ all.balances[l]=localStorage.getItem(`balances_${l}`); all.operations[l]=localStorage.getItem(`operations_${l}`); all.devices[l]=localStorage.getItem(`devices_${l}`); all.sims[l]=localStorage.getItem(`sims_${l}`); } const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`reskeeper_${new Date().toISOString().slice(0,19)}.json`; a.click(); URL.revokeObjectURL(blob); showMessage('Экспорт выполнен','success','operation'); }
+    function importData(file){ const r=new FileReader(); r.onload=e=>{ try{ const imp=JSON.parse(e.target.result); if(imp.users) localStorage.setItem('users',imp.users); if(imp.balances) for(const[l,d] of Object.entries(imp.balances)) if(d) localStorage.setItem(`balances_${l}`,d); if(imp.operations) for(const[l,d] of Object.entries(imp.operations)) if(d) localStorage.setItem(`operations_${l}`,d); if(imp.devices) for(const[l,d] of Object.entries(imp.devices)) if(d) localStorage.setItem(`devices_${l}`,d); if(imp.sims) for(const[l,d] of Object.entries(imp.sims)) if(d) localStorage.setItem(`sims_${l}`,d); showMessage('Импорт выполнен! Перезайдите.','success','operation'); setTimeout(()=>location.reload(),1500); } catch(err){ showMessage('Ошибка импорта','error','operation'); } }; r.readAsText(file); }
+    
+    // ---------- Авторизация ----------
+    function register(){ const l=document.getElementById('login').value.trim(); const p=document.getElementById('password').value; if(!l||!p){ authMsg('Введите логин и пароль','error'); return; } if(p.length<4){ authMsg('Пароль не менее 4 символов','error'); return; } if(getUserData(l)){ authMsg('Логин занят','error'); return; } saveUserData(l, hash(l), hash(p)); authMsg('Учётка создана! Войдите.','success'); document.getElementById('login').value=''; document.getElementById('password').value=''; }
+    function login(){ const l=document.getElementById('login').value.trim(); const p=document.getElementById('password').value; if(!l||!p){ authMsg('Введите логин и пароль','error'); return; } const u=getUserData(l); if(!u){ authMsg('Неверный логин или пароль','error'); return; } if(hash(l)===u.loginHash && hash(p)===u.passwordHash){ currentUser=p; currentLogin=l; authMsg('Вход выполнен!','success'); setTimeout(()=>{ document.getElementById('authScreen').classList.add('hidden'); document.getElementById('mainScreen').classList.remove('hidden'); renderBalances(); renderOperations(); renderDevices(); renderSims(); updateModalAccountSelect(); updateFilterSelect(); },500); } else { authMsg('Неверный логин или пароль','error'); } }
+    function logout(){ currentUser=null; currentLogin=null; document.getElementById('authScreen').classList.remove('hidden'); document.getElementById('mainScreen').classList.add('hidden'); document.getElementById('login').value=''; document.getElementById('password').value=''; hideBalanceForm(); closeModal(); closeDeviceModal(); closeSimModal(); closeStateModal(); closeHistoryModal(); }
+    function authMsg(t,type){ const m=document.getElementById('authMessage'); m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),3000); }
+    function showMessage(t,type,ctx){ const c=ctx==='balance'?document.getElementById('balancesList'):ctx==='device'?document.getElementById('devicesList'):ctx==='sim'?document.getElementById('simsList'):document.getElementById('operationsList'); if(!c) return; const m=document.createElement('div'); m.className=`message ${type}`; m.textContent=t; c.parentNode.insertBefore(m,c); setTimeout(()=>m.remove(),2000); }
+    function showFormMsg(t,type,f){ const m=document.getElementById(f==='balance'?'balanceFormMessage':'operationFormMessage'); if(m){ m.textContent=t; m.className=`message ${type}`; m.classList.remove('hidden'); setTimeout(()=>m.classList.add('hidden'),2000); } }
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function formatNumber(n){ return n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function getSymbol(c){ return {RUB:'₽',USD:'$',EUR:'€',KZT:'₸'}[c]||c; }
+    
+    function switchTab(tab){
+        const bt=document.getElementById('balancesTab'), ot=document.getElementById('operationsTab'), dt=document.getElementById('devicesTab'), st=document.getElementById('simsTab');
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        bt.classList.add('hidden'); ot.classList.add('hidden'); dt.classList.add('hidden'); st.classList.add('hidden');
+        if(tab==='balances'){ bt.classList.remove('hidden'); document.querySelector('.tab[data-tab="balances"]').classList.add('active'); renderBalances(); }
+        else if(tab==='operations'){ ot.classList.remove('hidden'); document.querySelector('.tab[data-tab="operations"]').classList.add('active'); renderOperations(); updateModalAccountSelect(); updateFilterSelect(); }
+        else if(tab==='devices'){ dt.classList.remove('hidden'); document.querySelector('.tab[data-tab="devices"]').classList.add('active'); renderDevices(); }
+        else if(tab==='sims'){ st.classList.remove('hidden'); document.querySelector('.tab[data-tab="sims"]').classList.add('active'); renderSims(); }
+    }
+    
+    // ---------- Инициализация ----------
+    document.getElementById('registerBtn').onclick = register;
+    document.getElementById('loginBtn').onclick = login;
+    document.getElementById('logoutMainBtn').onclick = logout;
+    document.getElementById('deleteAllDataBtn').onclick = deleteAllData;
+    document.getElementById('addBalanceBtn').onclick = () => { document.getElementById('balanceFormTitle').innerText='Новый счёт'; currentBalanceIdx=null; document.getElementById('balanceName').value=''; document.getElementById('balanceAmount').value=''; document.getElementById('balanceCurrency').value='RUB'; document.getElementById('balanceFormCard').classList.remove('hidden'); };
+    document.getElementById('saveBalanceBtn').onclick = saveBalanceFromForm;
+    document.getElementById('deleteBalanceBtn').onclick = deleteCurrentBalance;
+    document.getElementById('cancelBalanceBtn').onclick = hideBalanceForm;
+    document.getElementById('addOperationBtn').onclick = () => openModal();
+    document.getElementById('modalSaveBtn').onclick = saveModalOperation;
+    document.getElementById('modalCancelBtn').onclick = closeModal;
+    document.getElementById('addDeviceBtn').onclick = () => { currentDeviceIdx=null; document.getElementById('deviceModalTitle').innerText='Добавить устройство'; document.getElementById('deviceName').value=''; document.getElementById('deviceType').value='phone'; document.getElementById('deviceBattery').value=''; document.getElementById('deviceNextCharge').value=''; document.getElementById('batteryGroup').style.display='block'; document.getElementById('deviceModal').classList.remove('hidden'); };
+    document.getElementById('modalDeviceSaveBtn').onclick = saveDeviceFromModal;
+    document.getElementById('modalDeviceCancelBtn').onclick = closeDeviceModal;
+    document.getElementById('addSimBtn').onclick = () => { currentSimId=null; document.getElementById('simModalTitle').innerText='Добавить SIM'; document.getElementById('simNumber').value=''; document.getElementById('simOperator').value=''; document.getElementById('simDevice').value=''; document.getElementById('simBalance').value=''; document.getElementById('deleteSimBtn').classList.add('hidden'); document.getElementById('simModal').classList.remove('hidden'); };
+    document.getElementById('saveSimBtn').onclick = saveSimFromModal;
+    document.getElementById('deleteSimBtn').onclick = () => { if(currentSimId) deleteSim(currentSimId); closeSimModal(); };
+    document.getElementById('cancelSimBtn').onclick = closeSimModal;
+    document.getElementById('saveStateBtn').onclick = saveState;
+    document.getElementById('cancelStateBtn').onclick = closeStateModal;
+    document.getElementById('closeHistoryBtn').onclick = closeHistoryModal;
+    document.getElementById('applyFilterBtn').onclick = () => { currentFilter.dateFrom=document.getElementById('filterDateFrom').value; currentFilter.dateTo=document.getElementById('filterDateTo').value; currentFilter.account=document.getElementById('filterAccount').value; currentFilter.counterparty=document.getElementById('filterCounterparty').value; currentFilter.category=document.getElementById('filterCategory').value; currentFilter.comment=document.getElementById('filterComment').value; renderOperations(); };
+    document.getElementById('clearFilterBtn').onclick = () => { document.getElementById('filterDateFrom').value=''; document.getElementById('filterDateTo').value=''; document.getElementById('filterAccount').value=''; document.getElementById('filterCounterparty').value=''; document.getElementById('filterCategory').value=''; document.getElementById('filterComment').value=''; currentFilter={dateFrom:'',dateTo:'',account:'',counterparty:'',category:'',comment:''}; renderOperations(); };
+    document.getElementById('exportBtn').onclick = exportData;
+    document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+    document.getElementById('importFile').onchange = (e) => { if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; };
+    document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => switchTab(tab.dataset.tab));
+    document.getElementById('modalOperationDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('stateDate').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
